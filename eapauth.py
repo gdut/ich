@@ -47,7 +47,7 @@ class EAPAuth(object):
         # FIXME TEST do you mean the max len is 16?
         #            and how did the password hashed into md5?
         md5 = self.login_info['password'][0:16]
-        md5 += '\x00' * (16 - len(md5))
+        md5 += '\x00' * (16 - len(md5))  # padding
 
         chap = []
         for i in xrange(0, 16):
@@ -136,6 +136,7 @@ class EAPAuth(object):
                 self.send_response_md5(id, md5data)
                 print 'Sending EAP response with password'
 
+            # TODO yeah, maybe we will have to assume other code as SRP
             else:
                 print 'Got unknown EAP code (%i)' % code
 

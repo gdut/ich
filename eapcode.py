@@ -6,7 +6,7 @@ code = {
         'BROADCAST_ADDR': '\xff\xff\xff\xff\xff\xff',
 
         'EAPOL_VERSION': 1,
-        'EAPOL_PACKET': 0,
+        'EAPOL_EAPPACKET': 0,
 
         #: packet info for EAPOL_EAPPACKET
         'EAPOL_START': 1,
@@ -15,6 +15,7 @@ code = {
         'EAPOL_ASF': 4,
         'EAP_REQUEST': 1,
         'EAP_RESPONSE': 2,
+        # 'EAP_MESSAGE': 10,
         'EAP_SUCCESS': 3,
         'EAP_FAILURE': 4,
 
