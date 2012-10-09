@@ -11,14 +11,15 @@ from eappacket import unpack_packet
 class EAPAuth(object):
     def __init__(self, login_info):
         #: bind client to the EAP protocol
-        self.client = socket.socket()
-        self.client.bind(login_info['ethernet_interface'],
-                         EAPOL_code['ETERTYPE_PAE'])
+        self.client = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
+                                    socket.htons(EAPOL_code['ETHERTYPE_PAE']))
+        self.client.bind((login_info['ethernet_interface'],
+                          EAPOL_code['ETHERTYPE_PAE']))
 
         #: get local infomations
-        self.mac_addr = self.client.sockename()[4]
+        self.mac_addr = self.client.getsockname()[4]
         self.ethernet_header = build_ethernet_header(self.mac_addr,
-                                                EAPOL_code['PAE_GROUP_ADD'],
+                                                EAPOL_code['PAE_GROUP_ADDR'],
                                                 EAPOL_code['ETHERTYPE_PAE'])
         self.sent_logoff = False
         self.login_info = login_info

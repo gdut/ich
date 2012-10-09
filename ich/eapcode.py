@@ -42,7 +42,7 @@ EAPOL_type = {
 EAPOL_code = {
         'VERSION': 1,  # 802.1X-2001
 
-        'ETHERTYPE_TYPE': 0x888e,  # 802.1X
+        'ETHERTYPE_PAE': 0x888e,  # 802.1X
         # FIXME it's seem that the remote server addr in GDUT
         #       is 00:0f:e2:22:b6:94
         'PAE_GROUP_ADDR': '\x01\x80\xc2\x00\x00\x03',  # remote server addr

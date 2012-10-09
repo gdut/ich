@@ -52,7 +52,7 @@ def find_key(value, d):
 
 
 def build_ethernet_header(dest, src, header_type=None):
-    header_type = header_type or EAPOL_code['ETHERTYPE_TYPE']
+    header_type = header_type or EAPOL_code['ETHERTYPE_PAE']
     return dest + src + pack('!H', header_type)
 
 
