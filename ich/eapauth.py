@@ -7,6 +7,7 @@ from md5 import md5
 from eapcode import EAPOL_code
 from eappacket import build_ethernet_header, build_EAPOL, build_EAP
 from eappacket import unpack_packet
+from logger import logger
 
 
 class EAPAuth(object):
@@ -27,15 +28,18 @@ class EAPAuth(object):
         self.version_info = '\x06\x07bjQ7SE8BZ3MqHhs3clMregcDY3Y=\x20\x20'
 
     def send_start(self):
+        logger.info('Sending start...')
         packet = self.ethernet_header + build_EAPOL('START')
         self.client.send(packet)
 
     def send_logoff(self):
+        logger.info('Sending logoff...')
         packet = self.ethernet_header + build_EAPOL('LOGOFF')
         self.client.send(packet)
         self.sent_logoff = True
 
     def send_identity(self, packet_id):
+        logger.info('Sending identity...')
         # FIXME is version info needed and right?
         eap = build_EAP('RESPONSE', packet_id, 'IDENTITY',
                         self.version_info + self.login_info['username'])
@@ -43,61 +47,64 @@ class EAPAuth(object):
         self.client.send(packet)
 
     def send_md5_challenge(self, packet_id, md5value):
+        logger.info('Sending our buggy md5 challenge response...')
         # FIXME TESTING yeah, I just guess the crypt method in GDUT is
         #
         #                   md5(id + password + md5value)
         #
         #               but actually, it didn't get the right value when
         #               I manage to calculate by hand... I hope it's only
-        #               because I made some mistakes... XD (and tired)
-        #               anyway, leave it for debugging (or cracking...)
+        #               because I made some mistakes... XD (and I really get
+        #               tired) anyway, leave it for debugging (or cracking...)
         origin = '%s%s%s' % (packet_id, self.login_info['password'], md5value)
         #: EAP-MD5 Value-Size(16) + EAP-MD5 Value
         digest = '\x10' + md5(origin).hexdigest()
+        logger.debug('md5 challenge digest: %s') % digest
         eap = build_EAP('RESPONSE', packet_id, 'MD5_CHALLENGE', digest)
         #: EAP-MD5 Value-Size(16) + EAP-MD5 Value + EAP-MD5 Extra Data
         packet = self.ethernet_header + build_EAPOL('EAPPACKET',
                     eap + self.login_info['username'])
+        logger.debug('md5 challenge packet: %s') % packet
         self.client.send(packet)
 
     def EAP_handler(self, packet):
         p = unpack_packet(packet)
 
         if p['type'] != 'EAPPACKET':
-            print 'Got unknown EAPOL type %i.' % p['type']
+            logger.warn('Got unknown EAPOL type %i.' % p['type'])
 
         if p['eapol']['code'] == 'SUCCESS':
-            print 'Got EAP success.'
+            logger.info('Got EAP success.')
 
             if self.login_info['dhcp_command']:
-                print 'Obtaining IP address:'
+                logger.info('Obtaining IP address')
                 call([self.login_info['dhcp_command'],
                       self.login_info['ethernet_interface']])
 
         elif p['eapol']['code'] == 'FAILURE':
             if self.sent_logoff:
-                print 'Logoff successfully!'
+                logger.info('Logoff successfully!')
             else:
-                print 'Got EAP failure.'
+                logger.warn('Got EAP failure.')
             exit(-1)
 
         elif p['eapol']['code'] == 'RESPONSE':
-            print 'Got unknown EAP response'
+            logger.info('Got unknown EAP response')
 
         elif p['eapol']['code'] == 'REQUEST':
             req = p['eapol']['eap']
             if req['type'] == 'IDENTITY':
-                print 'Got EAP request for identity.'
+                logger.info('Got EAP request for identity.')
                 self.send_identity(p['eapol']['id'])
-                print 'Sending EAP response with identity [%s]' % (
-                        self.login_info['username'])
+                logger.info('Sending EAP response with identity [%s]' % (
+                        self.login_info['username']))
             elif req['type'] == 'MD5_CHALLENGE':
-                print 'Got EAP request for md5-challenge'
+                logger.info('Got EAP request for md5-challenge')
                 self.send_md5_challenge(p['eapol']['id'],
                                         p['eapol']['eap']['data'])
-                print 'Sending EAP response with password'
+                logger.info('Sending EAP response with password')
             else:
-                print 'Got unknown EAP code (%i)' % p['eapol']['code']
+                logger.warn('Got unknown EAP code (%i)' % p['eapol']['code'])
 
     def run(self):
         try:
@@ -106,9 +113,9 @@ class EAPAuth(object):
                 packet = self.client.recv(1600)
                 self.EAP_handler(packet[14:])  # trim header
         except KeyboardInterrupt:
-            print 'Interrupted by user'
+            logger.warn('Interrupted by user')
             self.send_logoff()
         except socket.error, msg:
-            print 'Connect error'
-            print msg
+            logger.warn('Connect error')
+            logger.warn(msg)
             exit(-1)
