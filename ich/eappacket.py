@@ -95,4 +95,6 @@ def unpack_packet(packet):
     eapol_type = find_key(eapol_type, EAPOL_type)
     if eapol_type == 'EAPPACKET':
         eapol = unpack_eappacket(packet[4:])
+    else:
+        eapol = None
     return dict(version=version, type=eapol_type, length=length, eapol=eapol)

@@ -2,6 +2,7 @@
 
 import socket
 from subprocess import call
+from md5 import md5
 
 from eapcode import EAPOL_code
 from eappacket import build_ethernet_header, build_EAPOL, build_EAP
@@ -41,8 +42,23 @@ class EAPAuth(object):
         packet = self.ethernet_header + build_EAPOL('EAPPACKET', eap)
         self.client.send(packet)
 
-    def send_md5_challenge(self, packet_id):
-        raise NotImplemented
+    def send_md5_challenge(self, packet_id, md5value):
+        # FIXME TESTING yeah, I just guess the crypt method in GDUT is
+        #
+        #                   md5(id + password + md5value)
+        #
+        #               but actually, it didn't get the right value when
+        #               I manage to calculate by hand... I hope it's only
+        #               because I made some mistakes... XD (and tired)
+        #               anyway, leave it for debugging (or cracking...)
+        origin = '%s%s%s' % (packet_id, self.login_info['password'], md5value)
+        #: EAP-MD5 Value-Size(16) + EAP-MD5 Value
+        digest = '\x10' + md5(origin).hexdigest()
+        eap = build_EAP('RESPONSE', packet_id, 'MD5_CHALLENGE', digest)
+        #: EAP-MD5 Value-Size(16) + EAP-MD5 Value + EAP-MD5 Extra Data
+        packet = self.ethernet_header + build_EAPOL('EAPPACKET',
+                    eap + self.login_info['username'])
+        self.client.send(packet)
 
     def EAP_handler(self, packet):
         p = unpack_packet(packet)
